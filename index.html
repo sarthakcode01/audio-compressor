@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Audio Timeline Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230284c7'/><text y='.75em' x='22' font-size='60'>🎵</text></svg>">
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="nle-body">
+  <div class="nle-app">
+    <!-- Top Header -->
+    <header class="nle-header">
+      <div class="header-left">
+        <div class="app-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h2>Timeline Studio</h2>
+          <span class="sub">Audio Editor</span>
+        </div>
+      </div>
+
+      <!-- Center Master Timecode -->
+      <div class="header-timecode">
+        <div class="timecode-digits">
+          <span id="timecode-current">00:00.00</span>
+          <span class="sep">/</span>
+          <span id="timecode-total">00:00.00</span>
+        </div>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="header-right">
+        <input type="file" id="add-audio-input" accept="audio/*" multiple class="file-input-hidden">
+        <button class="btn btn-primary btn-sm" id="add-audio-btn" title="Add Audio File">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span class="btn-label">+ Add</span>
+        </button>
+        <button class="btn btn-success btn-sm" id="export-master-btn" title="Export WAV">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span class="btn-label">Export</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Timeline Area -->
+    <main class="timeline-workspace" id="timeline-workspace">
+      <!-- Desktop Track Sidebar (Hidden on mobile) -->
+      <div class="timeline-headers-col" id="timeline-headers-col">
+        <div class="ruler-corner">
+          <span>TRACKS</span>
+        </div>
+        <div class="track-header-item">
+          <div class="track-title-row">
+            <span class="track-badge">A1</span>
+            <span class="track-name">Audio Track</span>
+          </div>
+          <div class="track-actions">
+            <button class="track-btn" id="track-mute-btn" title="Mute Track">M</button>
+            <button class="track-btn" id="track-solo-btn" title="Solo Track">S</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable Timeline (Ruler + Tracks + Playhead) -->
+      <div class="timeline-scroll-area" id="timeline-scroll-area">
+        <!-- Floating Mobile Track Indicator -->
+        <div class="mobile-track-pill">A1</div>
+
+        <!-- Sticky Time Ruler Container -->
+        <div class="ruler-container" id="ruler-container">
+          <canvas id="timeline-ruler-canvas" height="32"></canvas>
+        </div>
+
+        <!-- Virtual Tracks Area -->
+        <div class="timeline-tracks-area" id="timeline-tracks-area">
+          <div class="timeline-track-lane" id="timeline-track-lane">
+            <!-- Audio Clips injected here dynamically -->
+          </div>
+
+          <!-- Playhead Cursor Line & Scrubber Handle -->
+          <div class="timeline-playhead" id="timeline-playhead">
+            <div class="playhead-handle" title="Drag to scrub">
+              <svg width="18" height="22" viewBox="0 0 18 22">
+                <polygon points="0,0 18,0 18,13 9,22 0,13" fill="#f59e0b"></polygon>
+              </svg>
+            </div>
+            <div class="playhead-line"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Center Transport Bar (Large Thumb Play/Pause) -->
+    <div class="nle-transport-bar">
+      <div class="transport-center">
+        <button class="btn btn-transport" id="btn-jump-start" title="Jump to Start (Home)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"></line>
+          </svg>
+        </button>
+        <button class="btn btn-transport" id="btn-step-back" title="Step Back 0.1s">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="18 19 8 12 18 5 18 19"></polygon>
+          </svg>
+        </button>
+        <button class="btn btn-play-main" id="btn-play-pause" title="Play / Pause (Space)">
+          <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="7 4 20 12 7 20 7 4"></polygon>
+          </svg>
+          <svg id="pause-icon" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+        </button>
+        <button class="btn btn-transport" id="btn-step-fwd" title="Step Forward 0.1s">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="6 5 16 12 6 19 6 5"></polygon>
+          </svg>
+        </button>
+        <button class="btn btn-transport" id="btn-stop" title="Stop">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12"></rect>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Zoom Bar -->
+      <div class="transport-zoom">
+        <button class="btn-zoom-step" id="btn-zoom-out">−</button>
+        <input type="range" id="zoom-slider" min="0.2" max="50" step="0.2" value="2" class="zoom-slider">
+        <button class="btn-zoom-step" id="btn-zoom-in">+</button>
+      </div>
+    </div>
+
+    <!-- Mobile-First Bottom Action Ribbon (CapCut Style) -->
+    <nav class="mobile-action-dock" id="mobile-action-dock">
+      <button class="action-dock-btn" id="btn-split" title="Split at Playhead (S)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+        <span>Split</span>
+      </button>
+
+      <button class="action-dock-btn" id="btn-trim-left" title="Trim Left (Q)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5"></path>
+          <polyline points="12 19 5 12 12 5"></polyline>
+          <line x1="19" y1="5" x2="19" y2="19"></line>
+        </svg>
+        <span>Trim Left</span>
+      </button>
+
+      <button class="action-dock-btn" id="btn-trim-right" title="Trim Right (W)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14"></path>
+          <polyline points="12 5 19 12 12 19"></polyline>
+          <line x1="5" y1="5" x2="5" y2="19"></line>
+        </svg>
+        <span>Trim Right</span>
+      </button>
+
+      <button class="action-dock-btn text-danger" id="btn-delete" title="Delete Clip (Del)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Delete</span>
+      </button>
+
+      <button class="action-dock-btn" id="btn-properties" title="Clip Properties">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span>Volume</span>
+      </button>
+
+      <button class="action-dock-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+        <span>Undo</span>
+      </button>
+    </nav>
+
+    <!-- Clip Properties Drawer (Bottom Sheet) -->
+    <div class="clip-drawer hidden" id="clip-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-group">
+          <span class="drawer-label">CLIP PROPERTIES</span>
+          <h4 id="insp-clip-name">Clip 1</h4>
+        </div>
+        <div class="drawer-meta">
+          <span id="insp-clip-start">00:00.00</span>
+          <span class="sep">•</span>
+          <span id="insp-clip-duration">00:00.00</span>
+        </div>
+        <button class="drawer-close-btn" id="drawer-close-btn">✕</button>
+      </div>
+
+      <div class="drawer-controls">
+        <div class="drawer-control-item">
+          <div class="control-label-row">
+            <span>VOLUME</span>
+            <strong id="insp-volume-val">100%</strong>
+          </div>
+          <input type="range" id="insp-volume" min="0" max="200" value="100" class="drawer-slider">
+        </div>
+
+        <div class="drawer-control-item">
+          <div class="control-label-row">
+            <span>FADE IN</span>
+            <strong id="insp-fade-in-val">0.0s</strong>
+          </div>
+          <input type="range" id="insp-fade-in" min="0" max="5" step="0.2" value="0" class="drawer-slider">
+        </div>
+
+        <div class="drawer-control-item">
+          <div class="control-label-row">
+            <span>FADE OUT</span>
+            <strong id="insp-fade-out-val">0.0s</strong>
+          </div>
+          <input type="range" id="insp-fade-out" min="0" max="5" step="0.2" value="0" class="drawer-slider">
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Decoding / Loading Modal Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="loading-card">
+        <div class="loading-animation">
+          <div class="spinner-ring"></div>
+          <div class="audio-wave-bars">
+            <span class="bar bar-1"></span>
+            <span class="bar bar-2"></span>
+            <span class="bar bar-3"></span>
+            <span class="bar bar-4"></span>
+            <span class="bar bar-5"></span>
+          </div>
+        </div>
+        <div class="loading-info">
+          <h3 id="loading-title">Decoding Audio File...</h3>
+          <p id="loading-sub" class="loading-sub">Reading & processing audio samples</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
